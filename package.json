@@ -1,0 +1,18 @@
+{
+  "name": "dynadot-price-checker",
+  "version": "1.0.0",
+  "description": "Check domain prices on Dynadot and send notifications",
+  "main": "check.js",
+  "scripts": {
+    "start": "node check.js",
+    "test": "node test-pushover-main.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "nodemailer": "^6.9.0",
+    "node-pushover": "^1.0.0"
+  }
+}
