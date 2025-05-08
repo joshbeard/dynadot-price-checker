@@ -1,6 +1,6 @@
 # Dynadot Domain Price Checker
 
-This simple tool checks domain prices on Dynadot and can send notifications via Pushover or email.
+This simple tool checks domain prices on Dynadot and can send notifications via Pushover.
 
 ## Setup and Usage (Local Node.js - Recommended)
 

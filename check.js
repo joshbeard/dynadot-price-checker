@@ -1,12 +1,7 @@
-// Dynadot Domain Price Checker
-// This script checks the price of multiple domains on Dynadot and sends alerts if prices change
-// Requires: Node.js with puppeteer, nodemailer, node-pushover, and fs packages
-
 const puppeteer = require('puppeteer');
-const nodemailer = require('nodemailer');
 const fs = require('fs');
-const path = require('path');
 const CONFIG = require('./config');
+const DYNADOT_SEARCH_URL = 'https://www.dynadot.com/domain/search?domain=';
 
 // Initialize Pushover if enabled
 let pushover = null;
@@ -49,7 +44,7 @@ async function checkDomainPrice(domain) {
 
     const MAX_RETRIES = 3;
     const RETRY_DELAY_MS = 5000;
-    let browser; // Define browser outside the loop
+    let browser;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
@@ -60,14 +55,14 @@ async function checkDomainPrice(domain) {
             });
 
             const page = await browser.newPage();
-            // Navigate to Dynadot search page
-            await page.goto(`https://www.dynadot.com/domain/search?domain=${domain}`, {
+
+            await page.goto(`${DYNADOT_SEARCH_URL}${domain}`, {
                 waitUntil: 'networkidle2',
                 timeout: 60000 // Keep original timeout for each attempt
             });
 
             // Wait for the price element to be available
-            await page.waitForSelector('.domain-price', { timeout: 30000 }); // Keep original timeout
+            await page.waitForSelector('.domain-price', { timeout: 30000 });
 
             // Extract the price
             const priceText = await page.$eval('.domain-price', el => el.textContent.trim());
@@ -76,70 +71,27 @@ async function checkDomainPrice(domain) {
             const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
 
             console.log(`Current price for ${domain}: $${price}`);
-            await browser.close(); // Close browser on success
-            return price; // Return price on success
+            await browser.close();
+            return price;
 
         } catch (error) {
-            console.error(`Attempt ${attempt} failed for ${domain}:`, error.message); // Log only message initially
+            console.error(`Attempt ${attempt} failed for ${domain}:`, error.message);
             if (browser) {
-                await browser.close().catch(e => console.error('Error closing browser during retry:', e)); // Ensure browser is closed on error
+                await browser.close().catch(e => console.error('Error closing browser during retry:', e));
             }
 
             // Check if it's the specific error and if retries are left
             if (error.message.includes('Navigating frame was detached') && attempt < MAX_RETRIES) {
                 console.log(`Retrying in ${RETRY_DELAY_MS / 1000} seconds...`);
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-                // Continue to the next iteration
             } else {
-                console.error(`Final error checking price for ${domain} after ${attempt} attempts:`, error); // Log full error on final failure
-                return null; // Return null after final attempt or for non-retryable errors
+                console.error(`Final error checking price for ${domain} after ${attempt} attempts:`, error);
+                return null;
             }
         }
     }
-    // This part should technically not be reached if logic above is correct,
-    // but acts as a safeguard.
     console.error(`Failed to get price for ${domain} after ${MAX_RETRIES} attempts.`);
     return null;
-}
-
-// Function to send email notification
-async function sendEmailAlert(domain, newPrice, oldPrice) {
-    if (!CONFIG.email.enabled) return;
-
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: CONFIG.email.from,
-            pass: CONFIG.email.password
-        }
-    });
-
-    const priceDifference = newPrice - oldPrice;
-    const changeDirection = priceDifference > 0 ? 'increased' : 'decreased';
-    const formattedDifference = Math.abs(priceDifference).toFixed(2);
-
-    const mailOptions = {
-        from: CONFIG.email.from,
-        to: CONFIG.email.to,
-        subject: `${CONFIG.email.subject}${domain} ${changeDirection} by $${formattedDifference}`,
-        html: `
-      <h2>Domain Price Alert</h2>
-      <p>The price for <strong>${domain}</strong> has ${changeDirection}.</p>
-      <p>
-        Old Price: $${oldPrice.toFixed(2)}<br>
-        New Price: $${newPrice.toFixed(2)}<br>
-        Difference: $${formattedDifference} (${changeDirection})
-      </p>
-      <p>Check it out at: <a href="https://www.dynadot.com/domain/search?domain=${domain}">Dynadot</a></p>
-    `
-    };
-
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Email alert sent for price change on ${domain}`);
-    } catch (error) {
-        console.error('Error sending email alert:', error);
-    }
 }
 
 // Function to send Pushover notification
@@ -173,7 +125,6 @@ async function checkAndUpdateDomain(domain, priceData) {
         };
     }
 
-    // Get current price
     const currentPrice = await checkDomainPrice(domain);
 
     if (currentPrice === null) {
@@ -221,16 +172,6 @@ async function checkAndUpdateDomain(domain, priceData) {
         notificationMessage
     );
 
-    // If price changed, send email alert
-    if (lastRecord && currentPrice !== lastRecord.price) {
-        console.log(`Price change detected for ${domain}! Old: $${lastRecord.price}, New: $${currentPrice}`);
-        await sendEmailAlert(domain, currentPrice, lastRecord.price);
-    } else if (lastRecord) {
-        console.log(`No price change for ${domain} since last check (${new Date(lastRecord.date).toLocaleDateString()})`);
-    } else {
-        console.log(`First price check recorded for ${domain}. No previous data to compare.`);
-    }
-
     return true;
 }
 
@@ -258,11 +199,9 @@ async function main() {
         }
     }
 
-    // Save updated history
     savePriceHistory(priceData);
 }
 
-// Run the script and handle errors
 main()
     .then(() => {
         console.log('Price check completed successfully!');
