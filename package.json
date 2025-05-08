@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "description": "Check domain prices on Dynadot and send notifications",
   "main": "check.js",
-  "scripts": {
-    "start": "node check.js",
-    "test": "node test-pushover-main.js"
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "0BSD",

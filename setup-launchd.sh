@@ -1,4 +1,5 @@
 #!/bin/bash
+# Script to setup a launchd job to run the Dynadot price checker
 
 # Define paths
 PLIST_FILE="$HOME/Library/LaunchAgents/me.joshbeard.dynadotpricechecker.plist"

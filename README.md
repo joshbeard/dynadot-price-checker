@@ -18,7 +18,6 @@ Follow these steps to get the checker running on your local machine:
     cp config.sample.js config.js
     nvim config.js
     ```
-    * Ensure `config.js` is correctly filled out before proceeding.
 
 3.  **Install Dependencies:**
     ```shell
