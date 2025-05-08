@@ -1,103 +1,81 @@
 # Dynadot Domain Price Checker
 
-A quickly generated script to check domain prices on Dynadot and send notifications via Pushover or email.
+This simple tool checks domain prices on Dynadot and can send notifications via Pushover or email.
 
-## Setup Instructions
+## Setup and Usage (Local Node.js - Recommended)
 
-### Option 1: Direct Node.js Setup
+Follow these steps to get the checker running on your local machine:
 
-1. **Install dependencies:**
+1.  **Clone the Repository:**
+    ```shell
+    git clone https://github.com/joshbeard/dynadot-price-checker.git
+    cd dynadot-price-checker
+    ```
 
-```bash
-npm install
-```
+2.  **Create Your Configuration:**
+    Copy the sample configuration file, then edit `config.js` with your specific details (domains, API keys, notification preferences).
+    ```shell
+    cp config.sample.js config.js
+    nvim config.js
+    ```
+    * Ensure `config.js` is correctly filled out before proceeding.
 
-2. **Create your configuration file:**
+3.  **Install Dependencies:**
+    ```shell
+    npm install
+    ```
 
-Copy `config.sample.js` to `config.js` and update it with your details.
+4.  **Run the Checker Manually:**
+    To perform a one-time check:
+    ```shell
+    node check.js
+    ```
 
-```javascript
-const path = require('path');
+## Automated Scheduling (macOS with launchd)
 
-module.exports = {
-    domains: ['example.com'],
-    checkFrequency: 'daily',
-    dataPath: path.join(__dirname, 'domain-price-history.json'),
-    email: {
-        enabled: false,
-        from: 'your-email@gmail.com',
-        to: 'recipient-email@gmail.com',
-        password: 'your-app-password',
-        subject: 'Domain Price Alert: '
-    },
-    pushover: {
-        enabled: true,
-        user: 'your-pushover-user-key',
-        token: 'your-pushover-app-token',
-        device: '',
-        sound: 'pushover',
-        priority: 0
-    }
-};
-```
+For macOS users, the `setup-launchd.sh` script configures the local Node.js application to run automatically.
 
-3. **Run the script:**
+1.  **Prerequisites:**
+    *   Complete steps 1-3 from the "Setup and Usage (Local Node.js)" section.
 
-```bash
-node check.js
-```
+2.  **Configure and Run the Setup Script:**
+    *   Open `setup-launchd.sh` in a text editor.
+    *   **Important:**
+        *   Verify the `NODE_PATH` variable correctly points to your Node.js executable (e.g., `/opt/homebrew/bin/node`). Find your Node path by running `which node`.
+        *   Adjust the `StartCalendarInterval` (Hour and Minute values) if you wish to change the default schedule (13:00 / 1 PM).
+    *   Make the script executable and run it from the project directory:
+        ```shell
+        bash ./setup-launchd.sh
+        ```
+    This will set up a LaunchAgent to run `node check.js` according to the schedule you've set. Logs will be saved to `check.log` in the project directory.
 
-### Option 2: Docker Setup
+## Alternative Setup (Docker)
 
-#### Using Docker Compose (Recommended)
+If you prefer a containerized environment:
 
-1. **Create your configuration file:**
+1.  **Prerequisites:**
+    * Docker and Docker Compose installed.
+    * Complete steps 1 and 2 from the "Setup and Usage (Local Node.js)" section.
 
-Copy `config.sample.js` to `config.js` and update it with your details.
+2.  **Build and Run with Docker Compose:**
+    *   To build the image and run the checker (foreground):
+        ```shell
+        docker-compose up --build
+        ```
+    *   To run in detached (background) mode:
+        ```shell
+        docker-compose up --build -d
+        ```
+    *   To stop the service:
+        ```shell
+        docker-compose down
+        ```
+    The `domain-price-history.json` file will also be persisted in your project directory.
 
-2. **Run with docker-compose:**
-
-```bash
-docker-compose up
-```
-
-3. **Set up as a cron job:**
-
-Add to your crontab (edit with `crontab -e`):
-
-```
-# Run daily at 8 AM
-0 8 * * * cd /path/to/dynadot-checker && docker-compose up
-```
-
-#### Using Docker Directly
-
-1. **Create your configuration file:**
-
-Copy `config.sample.js` to `config.js` and update it with your details.
-
-2. **Build the Docker image:**
-
-```bash
-docker build -t dynadot-checker .
-```
-
-3. **Run the container:**
-
-```bash
-docker run --rm -v $(pwd)/config.js:/app/config.js -v $(pwd)/domain-price-history.json:/app/domain-price-history.json dynadot-checker
-```
-
-4. **Set up as a cron job:**
-
-Add to your crontab (edit with `crontab -e`):
-
-```
-# Run daily at 8 AM
-0 8 * * * cd /path/to/dynadot-checker && docker run --rm -v $(pwd)/config.js:/app/config.js -v $(pwd)/domain-price-history.json:/app/domain-price-history.json dynadot-checker
-```
-
-## Troubleshooting
-
-- Ensure your Pushover credentials are correct and your device is properly configured to receive notifications.
-- If you're having issues with Pushover, run the test script: `node test-pushover-main.js`
+3.  **Scheduling Docker with Cron:**
+    Set up a cron job to run the Docker container. Edit your crontab (`crontab -e`):
+    ```cron
+    # Example: Run daily at 8 AM
+    0 8 * * * cd /path/to/your/dynadot-price-checker && docker-compose up
+    ```
+    Replace `/path/to/your/dynadot-price-checker` with the absolute path to where you cloned the project.

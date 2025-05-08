@@ -47,36 +47,59 @@ function savePriceHistory(data) {
 async function checkDomainPrice(domain) {
     console.log(`Checking price for ${domain} on Dynadot...`);
 
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 5000;
+    let browser; // Define browser outside the loop
 
-    try {
-        const page = await browser.newPage();
-        // Navigate to Dynadot search page
-        await page.goto(`https://www.dynadot.com/domain/search?domain=${domain}`, {
-            waitUntil: 'networkidle2',
-            timeout: 60000
-        });
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            console.log(`Attempt ${attempt} for ${domain}...`);
+            browser = await puppeteer.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
 
-        // Wait for the price element to be available
-        await page.waitForSelector('.domain-price', { timeout: 30000 });
+            const page = await browser.newPage();
+            // Navigate to Dynadot search page
+            await page.goto(`https://www.dynadot.com/domain/search?domain=${domain}`, {
+                waitUntil: 'networkidle2',
+                timeout: 60000 // Keep original timeout for each attempt
+            });
 
-        // Extract the price
-        const priceText = await page.$eval('.domain-price', el => el.textContent.trim());
+            // Wait for the price element to be available
+            await page.waitForSelector('.domain-price', { timeout: 30000 }); // Keep original timeout
 
-        // Clean up the price string and convert to number
-        const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+            // Extract the price
+            const priceText = await page.$eval('.domain-price', el => el.textContent.trim());
 
-        console.log(`Current price for ${domain}: $${price}`);
-        return price;
-    } catch (error) {
-        console.error(`Error checking price for ${domain}:`, error);
-        return null;
-    } finally {
-        await browser.close();
+            // Clean up the price string and convert to number
+            const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+
+            console.log(`Current price for ${domain}: $${price}`);
+            await browser.close(); // Close browser on success
+            return price; // Return price on success
+
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed for ${domain}:`, error.message); // Log only message initially
+            if (browser) {
+                await browser.close().catch(e => console.error('Error closing browser during retry:', e)); // Ensure browser is closed on error
+            }
+
+            // Check if it's the specific error and if retries are left
+            if (error.message.includes('Navigating frame was detached') && attempt < MAX_RETRIES) {
+                console.log(`Retrying in ${RETRY_DELAY_MS / 1000} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                // Continue to the next iteration
+            } else {
+                console.error(`Final error checking price for ${domain} after ${attempt} attempts:`, error); // Log full error on final failure
+                return null; // Return null after final attempt or for non-retryable errors
+            }
+        }
     }
+    // This part should technically not be reached if logic above is correct,
+    // but acts as a safeguard.
+    console.error(`Failed to get price for ${domain} after ${MAX_RETRIES} attempts.`);
+    return null;
 }
 
 // Function to send email notification

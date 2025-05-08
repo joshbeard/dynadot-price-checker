@@ -19,4 +19,4 @@ module.exports = {
         sound: 'pushover',
         priority: 0
     }
-}; 
+};

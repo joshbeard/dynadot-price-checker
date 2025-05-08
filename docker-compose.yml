@@ -6,4 +6,4 @@ services:
     volumes:
       - ./config.js:/app/config.js
       - ./domain-price-history.json:/app/domain-price-history.json
-    restart: "no" # Set to "no" for manual/cron execution 
+    restart: "no" # Set to "no" for manual/cron execution
