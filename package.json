@@ -9,6 +9,6 @@
   "license": "0BSD",
   "dependencies": {
     "node-pushover": "^1.0.0",
-    "puppeteer": "^21.0.0"
+    "puppeteer": "^24.8.1"
   }
 }
